@@ -2,72 +2,6 @@
 
 
 %% technical paper
-% fig 4: ARD - one input
-    % figure /- compare errors and thetas?
-        % params.thetas
-        % ax = np;plot(to_save.c_vi ./ to_save.d_vi{1} );ef; % 3 5 50
-        % ax = np;plot( to_save.d_vi{1} ./ to_save.c_vi);ef; % 3 5 50
-        % load('results/ard_figure.mat');
-
-        close all;
-        ax = arrayfun(@(ii) subplot(1,2,ii,'Nextplot','add'), 1:2);
-        h = mybar(Errs*100,ax(1));
-        set(h.lines,'Color',[0 0 0 0.2]);
-        set(ax(1),'XTick',[1 2],'XTickLabel',{'w/ ARD','RRR'},...
-               'XLim',[0.5 2.5],'YLim',[0 0.2],'YTick',0:0.1:0.2);
-        ylabel(ax(1),'mean-squared error (%)');
-        % ax = np;
-        plot_multiple_lines(c_vi ./ d_vis,ax(2),'x',1:5);
-        % plot_multiple_lines( d_vis / c_vi,ax(2),'x',1:5);
-        set(ax(2),'XLim',[0.5 5.5],'XTick',1:5);
-        xlabel(ax(2),'i-th communication axis');
-        ylabel('c_i / d_i');
-        set(ax,'FontSize',8);
-        % change font size of labels to 9
-        set(gcf,'Position',[0 0 4 1.7]*72);
-        exportgraphics(gcf,'tmp.png','Resolution',300);
-        
-    return
-
-    % run and fit
-    nsims = 100;
-    Errs  = nan(nsims,2);
-    rnks = 5; d_vis = nan(nsims,rnks);
-    for isim = 1:nsims
-        switch 1
-        case 1
-            % rrr simu
-            [X_fit,Yout,U,V,params] = simu.RRR(struct('thetas',[5 .5 .5],'signse',1,'magnitude',1,'nx',10,'ny',8,'rnk',3,'T',50));
-            flts = struct('wfilt',U*V');
-            Xin = {X_fit};
-        case 2
-            % ar1 simu
-            [X_fit,Y_hist_fit,Yout,tr_ind,flts,params] = simu.AR1(struct('rnk',[2 3],'signse',.5,'ntr',30,'nt',3));
-            Xin = {X_fit,Y_hist_fit{1}};
-        end
-        lam0 = 0;
-        opts = struct('MaxIter',1e5,'TolFun',1e-6,'Display','iter','Init','svd');
-        ard_params = params2ard_true(flts,params.rnk); 
-        [U_vi_cell,V_vi_cell,to_save] = rankr_VI_multi(Xin,Yout,rnks,lam0,opts,ard_params);
-            
-        % calculate error for figures
-        [B,ops_rrr] = bilinear.train(Xin,Yout,rnks,struct());
-        % plt_cmp_matrices({flts(1).wfilt,U_vi_cell{1}*V_vi_cell{1},B{1}},{'true','ARD','rrr'});ef;
-        err_fun = @(a,b) mean((a-b).^2,'all') / mean(b.^2,'all');
-        fprintf('ard err %.3f, rrr err %.3f\n',err_fun(flts(1).wfilt,U_vi_cell{1}*V_vi_cell{1}),err_fun(flts(1).wfilt,B{1}));
-        Errs(isim,1) = err_fun(U_vi_cell{1}*V_vi_cell{1},flts(1).wfilt);
-        Errs(isim,2) = err_fun(B{1},flts(1).wfilt);
-        d_vis(isim,:) = to_save.d_vi{1};
-    end
-    c_vi = to_save.c_vi;
-    save('results/ard_figure2.mat','Errs','d_vis','c_vi');
-    
-    return
-
-    % thinking one input works better, but ard gives similar range of results than rrr?
-    % try to change communication channel strength?
-
-
 % supp fig: with self-recurrence
     [f,Hemis,ses_w_file] = load_data.results('MO','DLS','cv_grid_wself_0and9');
     err = permute(cat(3,f(:).err),[3 1 2]);
@@ -431,6 +365,74 @@
 
 
 % checked
+    % fig 4: ARD - one input - need to change it anyways - this is plot v1
+        % figure /- compare errors and thetas?
+            % params.thetas
+            % ax = np;plot(to_save.c_vi ./ to_save.d_vi{1} );ef; % 3 5 50
+            % ax = np;plot( to_save.d_vi{1} ./ to_save.c_vi);ef; % 3 5 50
+            % load('results/ard_figure.mat');
+
+            load('data/fig5_v1');
+            close all;
+            ax = arrayfun(@(ii) subplot(1,2,ii,'Nextplot','add'), 1:2);
+            h = mybar(Errs*100,ax(1));
+            set(h.lines,'Color',[0 0 0 0.2]);
+            set(ax(1),'XTick',[1 2],'XTickLabel',{'w/ ARD','RRR'},...
+                'XLim',[0.5 2.5],'YLim',[0 0.8],'YTick',0:0.4:0.8);
+            ylabel(ax(1),'mean-squared error (%)');
+            % ax = np;
+            plot_multiple_lines(c_vi ./ d_vis,ax(2),'x',1:5);
+            % plot_multiple_lines( d_vis / c_vi,ax(2),'x',1:5);
+            set(ax(2),'XLim',[0.5 5.5],'XTick',1:5);
+            xlabel(ax(2),'i-th communication axis');
+            ylabel('c_i / d_i');
+            set(ax,'FontSize',8);
+            % change font size of labels to 9
+            set(gcf,'Position',[0 0 4 1.7]*72);
+            exportgraphics(gcf,'tmp.png','Resolution',300);
+            
+        return
+
+        % run and fit
+            nsims = 100;
+            Errs  = nan(nsims,2);
+            rnks = 5; d_vis = nan(nsims,rnks);
+            for isim = 1:nsims
+                switch 1
+                case 1
+                    % rrr simu
+                    [X_fit,Yout,U,V,params] = simu.RRR(struct('thetas',[5 .5 .5],'signse',1,'magnitude',1,'nx',10,'ny',8,'rnk',3,'T',50));
+                    flts = struct('wfilt',U*V');
+                    Xin = {X_fit};
+                case 2
+                    % ar1 simu
+                    [X_fit,Y_hist_fit,Yout,tr_ind,flts,params] = simu.AR1(struct('rnk',[2 3],'signse',.5,'ntr',30,'nt',3));
+                    Xin = {X_fit,Y_hist_fit{1}};
+                end
+                lam0 = 0;
+                opts = struct('MaxIter',1e5,'TolFun',1e-6,'Display','iter','Init','svd');
+                ard_params = params2ard_true(flts,params.rnk); 
+                [U_vi_cell,V_vi_cell,to_save] = multiRRR_wARD(Xin,Yout,rnks,lam0,opts,ard_params);
+                    
+                % calculate error for figures
+                [B,ops_rrr] = bilinear.train(Xin,Yout,rnks,struct());
+                % plt_cmp_matrices({flts(1).wfilt,U_vi_cell{1}*V_vi_cell{1},B{1}},{'true','ARD','rrr'});ef;
+                err_fun = @(a,b) mean((a-b).^2,'all') / mean(b.^2,'all');
+                fprintf('ard err %.3f, rrr err %.3f\n',err_fun(flts(1).wfilt,U_vi_cell{1}*V_vi_cell{1}),err_fun(flts(1).wfilt,B{1}));
+                Errs(isim,1) = err_fun(U_vi_cell{1}*V_vi_cell{1},flts(1).wfilt);
+                Errs(isim,2) = err_fun(B{1},flts(1).wfilt);
+                d_vis(isim,:) = to_save.d_vi{1};
+            end
+            c_vi = to_save.c_vi;
+            save('results/ard_figure2.mat','Errs','d_vis','c_vi');
+        
+        return
+
+        % thinking one input works better, but ard gives similar range of results than rrr?
+        % try to change communication channel strength?
+
+
+
     % fig 1: schematic simulation
         n_samples = 20;
         rng(8);

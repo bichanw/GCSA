@@ -1,4 +1,4 @@
-function [U_vi_cell,V_vi_cell,to_save] = rankr_VI_multi(Xin,Yout,rnks,lam0,opts,ard_params)
+function [U_vi_cell,V_vi_cell,to_save] = multiRRR_wARD(Xin,Yout,rnks,lam0,opts,ard_params)
 % [wU,wVt,wwfilts,fval] = bilinearMultifiltRRR_coordAscent(Xin,Yout,rnks,lambda,opts)
 % 
 % Computes low-rank regression estimate using coordinate ascent in the

@@ -6,7 +6,7 @@ classdef bilinear < handle
 	% train and predict model
 	methods (Static)
 
-		function B_full = refill_B(B_part,ops)
+		function B_full = refill_W(B_part,ops)
 			% fill back zeros for exlcuded predictors in B
 			% usually excluded by setting rnk to 0
 			for ii = 1:numel(B_part)
@@ -48,18 +48,24 @@ classdef bilinear < handle
 			%        rnk is the rank of the coefficient matrices
 			% 		 ops is a struct of additional parameters
 
+			% intitialization and parameters
 			if nargin < 4
 				ops = struct();
 			end
+			ops.lambda = getOr(ops,'lambda',0); % ridge regularization strength, default 0
 
-			% demean X
+			% centering X
 			if ~isfield(ops,'Xmean')
 				for ii = 1:numel(X)
 					ops.Xmean{ii} = mean(X{ii},1);
 				end
 			end
+			% centering Y
+			ops.Ymean = getOr(ops,'Ymean',mean(Y,1));
+			Y = Y - ops.Ymean;
 
-			% for each regressor, remove X with zero variance
+
+			% for each input source, remove input neurons with zero variance
 			for ii = 1:numel(X)
 				tmp = var(X{ii},[],1);
 				ops.exclude_id{ii} = (tmp==0);
@@ -68,11 +74,6 @@ classdef bilinear < handle
 				X{ii} = X{ii}(:,~ops.exclude_id{ii}); 
 				X{ii} = X{ii} - ops.Xmean{ii}(:,~ops.exclude_id{ii});
 			end
-			
-			% demean y
-			ops.Ymean = getOr(ops,'Ymean',mean(Y,1));
-			Y = Y - ops.Ymean;
-
 			% check rank is lower than n_cells after removing 0 variance
 			for ii = 1:numel(X)
 				if size(X{ii},2) < rnk(ii)
@@ -81,9 +82,7 @@ classdef bilinear < handle
 			end
 
 
-
 			% use svd method if only one input
-			ops.lambda = getOr(ops,'lambda',0);
 			if numel(X) == 1 %|| 
 				[B{1},wtfit{1},wxfit{1}] = svd_RRR(X{1}, Y, rnk, ops.lambda);
 				ops.niter = 1;
@@ -119,6 +118,7 @@ classdef bilinear < handle
 					wxfit{ii} = zeros(1,size(Y,2));
 				end
 
+				% run coord descent
 				tic;
 				[wtfit(rnk>0),wxfit(rnk>0),wwfilts(rnk>0),to_save] = bilinearMultifiltRRR_coordAscent(X(rnk>0),Y,rnk(rnk>0),ops.lambda,struct('Display','none','MaxIter',1e3));
 				ops.niter = to_save.niter;
@@ -133,7 +133,7 @@ classdef bilinear < handle
 
 			% refill B?
 			if isfield(ops,'refill') && ops.refill
-				B = regressors.bilinear.refill_B(B,ops);
+				B = regressors.bilinear.refill_W(B,ops);
 			end
 
 			% save other outputs
